@@ -2482,6 +2482,8 @@ asyncTest( "Sanitized HTML doesn't get unsanitized", function() {
 	testInput( "<img alt=\"<x\" title=\"\" src=\"/><img src=url404 onerror=xss()>\">" );
 	testInput( "<noscript/><img src=url404 onerror=xss()>" );
 
+	testInput( "<option><style></option></select><img src=url404 onerror=xss()></style>" );
+
 	// Support: iOS 8 - 12 only
 	// Old iOS parses `<noembed>` tags differently, executing this code. This is no
 	// different to native behavior on that OS, though, so just accept it.
@@ -2500,4 +2502,34 @@ asyncTest( "Sanitized HTML doesn't get unsanitized", function() {
 
 		start();
 	}, 1000 );
+});
+
+test( "<option> and <optgroup> markup is not parsed inside a <select> wrapper when not needed", function() {
+
+	var options, optgroups,
+		div = document.createElement( "div" );
+
+	// Support: IE<=9
+	// IE<=9 cannot parse <option> outside of a <select>, so the wrapper is still used there
+	div.innerHTML = "<option></option>";
+	if ( !div.lastChild ) {
+		expect( 1 );
+		ok( true, "This browser needs the <select> wrapper" );
+		return;
+	}
+
+	expect( 4 );
+
+	options = jQuery( "<option>a</option><input type='text'/>" );
+	optgroups = jQuery( "<optgroup label='b'></optgroup><input type='text'/>" );
+
+	deepEqual( jQuery.map( options, function( elem ) {
+		return elem.nodeName.toLowerCase();
+	}), [ "option", "input" ], "<option> markup keeps its siblings" );
+	equal( options.first().text(), "a", "<option> content is preserved" );
+
+	deepEqual( jQuery.map( optgroups, function( elem ) {
+		return elem.nodeName.toLowerCase();
+	}), [ "optgroup", "input" ], "<optgroup> markup keeps its siblings" );
+	equal( optgroups.first().attr( "label" ), "b", "<optgroup> attributes are preserved" );
 });
